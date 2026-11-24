@@ -1,2 +1,44 @@
 # Consigna original: no se versiona
 PM_Practica_SQLite.pdf
+
+# Misceláneos
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Flutter/Dart/Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Simbolos de depuración
+app.*.symbols
+
+# Configuración de compilación de AOT
+app.*.map.json
+
+# Artefactos de Android
+/android/app/debug
+/android/app/profile
+/android/app/release
