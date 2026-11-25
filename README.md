@@ -9,12 +9,34 @@ Dispositivos Móviles* (UAA).
 | Etapa | Contenido | Estado |
 |---|---|---|
 | 1 | Proyecto Flutter generado, código base y decisión de persistencia | hecha |
-| 2 | Base de datos, tabla y operaciones de alta/consulta | pendiente |
-| 3 | Edición, cambio de estado, eliminación y validación | pendiente |
-| 4 | Compatibilidad web, pruebas y documentación | pendiente |
+| 2 | Base de datos, tabla y operaciones de alta/consulta | hecha |
+| 3 | Edición, cambio de estado, eliminación y validación | hecha |
+| 4 | Compatibilidad web, pruebas y documentación | hecha |
 
-La versión base se conserva tal cual: la interfaz ya se puede ejecutar, pero el CRUD sigue
-en `TODO` y no existe capa de datos todavía.
+## Resultados de las pruebas
+
+| ID | Prueba | Entorno | Resultado |
+|---|---|---|---|
+| P1 | Tres tareas, cerrar y reabrir | Android | las tres permanecen |
+| P2 | Marcar completada y reiniciar | Android | el estado se conserva |
+| P3 | Cambiar título y reiniciar | Android | aparece el título nuevo |
+| P4 | Eliminar y reiniciar | Android | no reaparece |
+| P5 | Título vacío o solo espacios | Android | no se registra y avisa |
+| P6 | Recargar y cerrar/abrir pestaña | Web (Brave) | los datos permanecen |
+
+Android: emulador API 36 (x86\_64). Web: build de producción servido en local, datos en
+IndexedDB. En Linux la app compila, abre la base y crea el esquema; este equipo concreto
+necesita los ajustes de NixOS descritos más abajo.
+
+## Dónde se guarda la base
+
+| Entorno | Ubicación |
+|---|---|
+| Android | `app_flutter/gestor_tareas.sqlite` del directorio privado de la app |
+| Linux | `gestor_tareas.sqlite` en el directorio de datos de la aplicación |
+| Web | IndexedDB (u OPFS si el servidor envía COOP/COEP), ligado al origen y al perfil |
+
+Cada instalación tiene sus propios datos; no hay sincronización entre dispositivos.
 
 ## Decisión de persistencia: Drift
 
@@ -27,7 +49,7 @@ Se eligió **Drift** (`drift` + `drift_flutter`) por encima de `sqflite` y de gu
 - **Consultas reactivas con `Stream`.** La interfaz se refresca sola al cambiar la tabla; no
   hace falta recargar la lista manualmente después de cada escritura.
 - **Web real con WebAssembly.** En navegador usa `sqlite3.wasm` con
-  `drift_worker.dart.js` como worker, y respalda los datos en IndexedDB/OPFS del origen.
+  `drift_worker.js` como worker, y respalda los datos en IndexedDB/OPFS del origen.
 
 Lo que la práctica descarta explícitamente (lista en memoria, JSON en `shared_preferences`,
 API REST, MySQL) queda fuera por diseño.
@@ -100,12 +122,22 @@ drift cae a IndexedDB; los datos igual persisten en el mismo origen y perfil.
 
 ### Nota para NixOS
 
-- Los tests necesitan `libsqlite3` visible:
-  `LD_LIBRARY_PATH=/nix/store/...-sqlite-3.53.3/lib flutter test`.
-- La app GTK necesita iconos y decodificadores de imagen de gdk-pixbuf; si el tema de iconos
-  no está instalado, GTK aborta al arrancar. Se resuelve con `GDK_PIXBUF_MODULE_FILE` y un
-  tema Adwaita/hicolor disponible, o ejecutando en otra distro. Es un problema del entorno,
-  no del código.
+Este equipo necesitó dos ajustes de entorno para ejecutar y probar:
+
+```bash
+GDK_PIXBUF_MODULE_FILE=/nix/store/7anmdhj9akaxscp61vfd8nn86gvqbpkh-gdk-pixbuf-loaders.cache \
+XDG_CONFIG_HOME=/tmp/gtk-icon \
+XDG_DATA_DIRS=/nix/store/gvczrv4hxwbkqcg22c4npdi839b0l2jz-adwaita-icon-theme-50.0/share:/run/current-system/sw/share:$HOME/.local/share \
+LD_LIBRARY_PATH=/nix/store/fqkp26idpnpqk5l2cjfb51jdn6nj5bam-sqlite-3.53.3/lib \
+flutter run -d linux
+```
+
+- `GDK_PIXBUF_MODULE_FILE` y el tema Adwaita: sin decodificadores de imagen GTK aborta al
+  arrancar con "Icon 'image-missing' not present in theme".
+- `LD_LIBRARY_PATH`: la app y los tests cargan `libsqlite3` del sistema; también se puede
+  exportar solo para `flutter test`.
+
+En otra distribución no hacen falta.
 
 ## Pruebas
 
