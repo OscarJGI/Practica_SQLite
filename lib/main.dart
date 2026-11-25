@@ -9,8 +9,7 @@ void main() {
 
 /// Punto de entrada de la aplicación.
 ///
-/// La base se crea una sola vez y se inyecta en la pantalla principal; así las
-/// pruebas pueden sustituirla por una base en memoria.
+/// La base se crea una sola vez y se inyecta en la pantalla principal.
 class GestorTareasApp extends StatelessWidget {
   const GestorTareasApp({super.key, required this.database});
 

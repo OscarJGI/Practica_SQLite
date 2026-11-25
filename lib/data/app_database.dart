@@ -20,9 +20,7 @@ class Tareas extends Table {
 
 /// Base de datos local de la aplicación.
 ///
-/// Una sola clase sirve para Android, Linux y web: `driftDatabase` elige el
-/// motor adecuado en cada plataforma (archivo SQLite nativo o WebAssembly con
-/// respaldo en el navegador).
+/// Elige el ejecutor según la plataforma: archivo nativo o WebAssembly.
 @DriftDatabase(tables: [Tareas])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_abrirConexion());
@@ -34,13 +32,18 @@ class AppDatabase extends _$AppDatabase {
   int get schemaVersion => 1;
 
   static QueryExecutor _abrirConexion() {
-    return driftDatabase(name: 'gestor_tareas');
+    return driftDatabase(
+      name: 'gestor_tareas',
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
+      ),
+    );
   }
 
   /// Todas las tareas, ordenadas por id.
   ///
-  /// Devuelve un [Stream]: cada escritura en la tabla vuelve a emitir la lista,
-  /// así la interfaz no necesita recargar a mano después de cada cambio.
+  /// Emite la lista completa cada vez que cambia la tabla.
   Stream<List<Tarea>> observarTareas() {
     final consulta = select(tareas)..orderBy([(t) => OrderingTerm(expression: t.id)]);
     return consulta.watch();
@@ -53,8 +56,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Cambia el título de una tarea existente.
   ///
-  /// Devuelve `false` si el id ya no existe, para que la interfaz avise en vez
-  /// de quedarse con un cambio que nunca se guardó.
+  /// Devuelve `false` si el id ya no existe.
   Future<bool> actualizarTitulo(int id, String titulo) async {
     final filas = await (update(tareas)..where((t) => t.id.equals(id)))
         .write(TareasCompanion(titulo: Value(titulo)));
@@ -68,7 +70,7 @@ class AppDatabase extends _$AppDatabase {
     return filas > 0;
   }
 
-  /// Elimina por id; `DELETE` no toca las demás filas.
+  /// Elimina por id.
   Future<bool> eliminarTarea(int id) async {
     final filas = await (delete(tareas)..where((t) => t.id.equals(id))).go();
     return filas > 0;

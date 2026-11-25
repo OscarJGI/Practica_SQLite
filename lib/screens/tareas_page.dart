@@ -5,8 +5,7 @@ import '../models/validacion_tarea.dart';
 
 /// Pantalla principal del gestor de tareas.
 ///
-/// Etapa 3: alta y consulta desde SQLite. La lista se alimenta de un [Stream]
-/// de Drift, por lo que se refresca sola después de cada escritura.
+/// La lista se alimenta de un [Stream] de Drift.
 class TareasPage extends StatefulWidget {
   const TareasPage({super.key, required this.database});
 
