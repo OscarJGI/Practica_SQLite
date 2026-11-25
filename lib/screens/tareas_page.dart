@@ -41,20 +41,109 @@ class _TareasPageState extends State<TareasPage> {
     }
   }
 
-  void _alternarCompletada(Tarea tarea, bool completada) {
-    _pendiente('Implementar actualización de tarea');
+  Future<void> _alternarCompletada(Tarea tarea, bool completada) async {
+    try {
+      final actualizada = await widget.database.cambiarEstado(
+        tarea.id,
+        completada: completada,
+      );
+      if (!actualizada) {
+        _avisar('Esa tarea ya no existe');
+      }
+    } catch (e) {
+      _avisar('No se pudo cambiar el estado: $e');
+    }
   }
 
-  void _editarTarea(Tarea tarea) {
-    _pendiente('Implementar edición de título');
+  Future<void> _editarTarea(Tarea tarea) async {
+    final titulo = await _pedirTitulo(tarea.titulo);
+    if (titulo == null) return;
+
+    try {
+      final actualizada = await widget.database.actualizarTitulo(
+        tarea.id,
+        titulo,
+      );
+      if (!actualizada) {
+        _avisar('Esa tarea ya no existe');
+      }
+    } catch (e) {
+      _avisar('No se pudo editar la tarea: $e');
+    }
   }
 
-  void _eliminarTarea(Tarea tarea) {
-    _pendiente('Implementar eliminación de tarea');
+  Future<String?> _pedirTitulo(String tituloActual) {
+    final controller = TextEditingController(text: tituloActual);
+    String? error;
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            void guardar() {
+              final mensaje = validarTitulo(controller.text);
+              if (mensaje != null) {
+                setStateDialog(() => error = mensaje);
+                return;
+              }
+              Navigator.of(context).pop(controller.text.trim());
+            }
+
+            return AlertDialog(
+              title: const Text('Editar título'),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                onSubmitted: (_) => guardar(),
+                decoration: InputDecoration(
+                  labelText: 'Título',
+                  errorText: error,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(onPressed: guardar, child: const Text('Guardar')),
+              ],
+            );
+          },
+        );
+      },
+    ).whenComplete(controller.dispose);
   }
 
-  void _pendiente(String mensaje) {
-    _avisar(mensaje);
+  Future<void> _eliminarTarea(Tarea tarea) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar tarea'),
+        content: Text('¿Eliminar "${tarea.titulo}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+
+    try {
+      final eliminada = await widget.database.eliminarTarea(tarea.id);
+      if (!eliminada) {
+        _avisar('Esa tarea ya no existe');
+      }
+    } catch (e) {
+      _avisar('No se pudo eliminar la tarea: $e');
+    }
   }
 
   void _avisar(String mensaje) {
@@ -135,8 +224,15 @@ class _TareasPageState extends State<TareasPage> {
                     }
                   },
                 ),
-                title: Text(tarea.titulo),
-                subtitle: Text('ID: ${tarea.id}'),
+                title: Text(
+                  tarea.titulo,
+                  style: tarea.completada
+                      ? const TextStyle(decoration: TextDecoration.lineThrough)
+                      : null,
+                ),
+                subtitle: Text(
+                  '${tarea.completada ? 'Completada' : 'Pendiente'} · ID ${tarea.id}',
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

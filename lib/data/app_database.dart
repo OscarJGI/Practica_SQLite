@@ -50,4 +50,27 @@ class AppDatabase extends _$AppDatabase {
   Future<int> agregarTarea(String titulo) {
     return into(tareas).insert(TareasCompanion.insert(titulo: titulo));
   }
+
+  /// Cambia el título de una tarea existente.
+  ///
+  /// Devuelve `false` si el id ya no existe, para que la interfaz avise en vez
+  /// de quedarse con un cambio que nunca se guardó.
+  Future<bool> actualizarTitulo(int id, String titulo) async {
+    final filas = await (update(tareas)..where((t) => t.id.equals(id)))
+        .write(TareasCompanion(titulo: Value(titulo)));
+    return filas > 0;
+  }
+
+  /// Marca una tarea como completada o pendiente.
+  Future<bool> cambiarEstado(int id, {required bool completada}) async {
+    final filas = await (update(tareas)..where((t) => t.id.equals(id)))
+        .write(TareasCompanion(completada: Value(completada)));
+    return filas > 0;
+  }
+
+  /// Elimina por id; `DELETE` no toca las demás filas.
+  Future<bool> eliminarTarea(int id) async {
+    final filas = await (delete(tareas)..where((t) => t.id.equals(id))).go();
+    return filas > 0;
+  }
 }
