@@ -36,4 +36,18 @@ class AppDatabase extends _$AppDatabase {
   static QueryExecutor _abrirConexion() {
     return driftDatabase(name: 'gestor_tareas');
   }
+
+  /// Todas las tareas, ordenadas por id.
+  ///
+  /// Devuelve un [Stream]: cada escritura en la tabla vuelve a emitir la lista,
+  /// así la interfaz no necesita recargar a mano después de cada cambio.
+  Stream<List<Tarea>> observarTareas() {
+    final consulta = select(tareas)..orderBy([(t) => OrderingTerm(expression: t.id)]);
+    return consulta.watch();
+  }
+
+  /// Guarda una tarea nueva y devuelve el id asignado por SQLite.
+  Future<int> agregarTarea(String titulo) {
+    return into(tareas).insert(TareasCompanion.insert(titulo: titulo));
+  }
 }
